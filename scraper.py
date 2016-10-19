@@ -9,7 +9,8 @@ import urllib2
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-#### FUNCTIONS 1.0
+#### FUNCTIONS 1.2
+import requests  # import requests to get data
 
 def validateFilename(filename):
     filenameregex = '^[a-zA-Z0-9]+_[a-zA-Z0-9]+_[a-zA-Z0-9]+_[0-9][0-9][0-9][0-9]_[0-9QY][0-9]$'
@@ -37,19 +38,19 @@ def validateFilename(filename):
 
 def validateURL(url):
     try:
-        r = urllib2.urlopen(url)
+        r= requests.get(url)
         count = 1
-        while r.getcode() == 500 and count < 4:
+        while r.status_code == 500 and count < 4:
             print ("Attempt {0} - Status code: {1}. Retrying.".format(count, r.status_code))
             count += 1
-            r = urllib2.urlopen(url)
+            r = requests.get(url)
         sourceFilename = r.headers.get('Content-Disposition')
 
         if sourceFilename:
             ext = os.path.splitext(sourceFilename)[1].replace('"', '').replace(';', '').replace(' ', '')
         else:
             ext = os.path.splitext(url)[1]
-        validURL = r.getcode() == 200
+        validURL = r.status_code == 200
         validFiletype = ext.lower() in ['.csv', '.xls', '.xlsx']
         return validURL, validFiletype
     except:
@@ -84,7 +85,7 @@ def convert_mth_strings ( mth_string ):
 #### VARIABLES 1.0
 
 entity_id = "E5040_HLBC_gov"
-url = "https://www.havering.gov.uk/Pages/ServiceChild/Publication-of-spend-over-500.aspx"
+url = "https://www3.havering.gov.uk/Pages/ServiceChild/Publication-of-spend-over-500.aspx"
 errors = 0
 data = []
 
@@ -96,12 +97,16 @@ soup = BeautifulSoup(html, 'lxml')
 
 #### SCRAPE DATA
 
+html = requests.get(url)
+soup = BeautifulSoup(html.text, 'lxml')
 links = soup.findAll('a',href=True)
 
 for link in links:
     url = link['href']
     if '/Documents/Council-democracy-elections/' in url:
         if '.csv' in url:
+            # import urllib
+            # url= urllib.quote(url.encode('utf8'))
             url = 'http://www.havering.gov.uk'+url
             title = link.text.strip().split()
             if title:
